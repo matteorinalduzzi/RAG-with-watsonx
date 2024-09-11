@@ -1,0 +1,5 @@
+torch
+transformers
+unstructured
+langchain
+langchain-community
