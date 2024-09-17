@@ -3,3 +3,8 @@ transformers
 unstructured
 langchain
 langchain-community
+
+genai
+langchain_ibm
+ibm_watsonx_ai
+chromadb
