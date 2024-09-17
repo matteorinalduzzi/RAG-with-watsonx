@@ -21,6 +21,12 @@ In doing so, we expand our preavious work on how to build a RAG system (referenc
 
 # Identify HAP content in the knowledge base using IBM Granite Guardium
 
+Differently from our preavious work, we introduce a new pre-processing step aimed at identifying documents containing HAP content. In order to do so, we split our documents into chuncks of text that we will pass to our HAP classifier. 
+
+(./images/fig1.jpg)
+
+
+
 # Rephrasing HAP content within documents while maintaining information
 
 # HAP filtering LLMs'output using IBM watsonx's AI Guardrails feature
