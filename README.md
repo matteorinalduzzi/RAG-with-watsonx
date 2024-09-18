@@ -23,10 +23,25 @@ In doing so, we expand our preavious work on how to build a RAG system (referenc
 
 Differently from our preavious work, we introduce a new pre-processing step aimed at identifying documents containing HAP content. In order to do so, we split our documents into chuncks of text that we will pass to our HAP classifier. 
 
-![](./images/fig1.jpg)
+(fig1)
 
+Then we need load the IBM Granite Guardian 38M model, which can be easily pulled from its HuggingFace Repository. The model take string of text as input and compute the probability that the processed text may contain HAP language: in its basic settings, if the probability associated to a string is higher than 0.5, the string is classified as 1 (indicating that it may contain HAP language), otherwise it is classified as 0 (i.e. no HAP content detected). For the sake of our analysis, we decide to select only the chuncks of text presenting a probability higher than 0.9 but the code can be easily adapted in order to select the preferred treshold for the specific use case.
 
+(fig2)
+
+Once we have identified the chunck on documents containing HAP language, we can build a dictionary containing all the documents containing such chuncks for later processing.
+
+(fig3)
+
+Now we need to build-up a few functions for manipulating the documents containing the chuncks we want to transform, in particular we will need to identify these chuncks, extract it from the documents and rebuild the documents once the selected chuncks are processed and trasformed in order to remove the HAP content.
+
+(fig4)
 
 # Rephrasing HAP content within documents while maintaining information
+
+We are now ready to process the HAP content in order to transform it so to maintain as much information as possible while rephrasing the text in proper language. In doing so, we leverage the foundational models available in IBM watsonx.ai: this will help us in selecting the model the best fit our requisites, since we can easily analize the model cards containing relevant information on model training, performance and cost. In particular, since we are willing to ensure that our RAG workflow avoid to produce any HAP content, we select IBM Granite 13B Instruct due to the data filtering process adopted at training time (which ensure limited possible exposure to HAP content during model training) and its balanced performace/cost ratio.
+
+
+
 
 # HAP filtering LLMs'output using IBM watsonx's AI Guardrails feature
