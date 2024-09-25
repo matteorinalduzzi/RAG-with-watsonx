@@ -1,5 +1,4 @@
 # hap_utilities.py>
-# Helper functions
 
 import nltk
 from nltk.tokenize import sent_tokenize, regexp_tokenize
@@ -78,15 +77,12 @@ def find_substring_indices(full_strings, substrings):
     return indices
 
 from typing import TypedDict
-
 class Credentials(TypedDict):
     url_LLM: str
     url_LANGCHAIN: str
     apikey: str
 
 
-
-# function
 from langchain_core.documents.base import Document 
 def clean_hap_content(docs: list[Document], credentials: Credentials, project_id: str):
     # Each document of the list is a very long text, so we split each document into smaller chuncks
@@ -113,11 +109,7 @@ def clean_hap_content(docs: list[Document], credentials: Credentials, project_id
         final_list = []
         for s in tmp_list:
             final_list += text_splitter.split_text(s)
-        #print(final_list)
         docs_as_list_of_chuncks.append(final_list)
-        # Put all the chunks in a single list
-        #docs_as_list_of_chuncks.append(text_splitter.split_text(doc.page_content))
-        #docs_as_list_of_chuncks.append(split_text_preserve_newlines(doc.page_content))
 
     # Load ibm-granite/granite-guardian-hap-38m model
     import torch
@@ -146,10 +138,8 @@ def clean_hap_content(docs: list[Document], credentials: Credentials, project_id
     matrix_of_chunks_with_hap = {}
     for tup in indices:
         i=tup[0]; j=tup[1];
-        #print(prediction_results[i][j])
-        #print(f"Probability: {probability_results[i][j]}, Sentence: {docs_as_list_of_chuncks[i][j]}")
         if(probability_results[i][j] >= 0.90):
-            print(tup)  # This prints the tuple
+            print(tup)
             if(i not in matrix_of_chunks_with_hap):
                 matrix_of_chunks_with_hap[i] = []
             matrix_of_chunks_with_hap[i].append(docs_as_list_of_chuncks[i][j])
@@ -165,7 +155,6 @@ def clean_hap_content(docs: list[Document], credentials: Credentials, project_id
     bearer_token = x.json()['access_token']
 
 
-    #matrix_of_docs_rewritten = {} # dict (dictionary) that maps integer keys to a single strings (e.g. 38: <document_rewritten>")
     for key in list(matrix_of_chunks_with_hap.keys()):
         old_doc = docs[key].page_content
         list_of_hap_strings = matrix_of_chunks_with_hap[key]
@@ -183,9 +172,7 @@ def clean_hap_content(docs: list[Document], credentials: Credentials, project_id
         # -----------------------------------------------------
 
         # -----------------------   GRANITE   ------------------------
-        # Build the prompt starting from the template and the instructions
-
-        #Ensure that the revised sentences no longer have harmful or offensive language but retain the original meaning or intention in a more respectful and appropriate way.
+        # Build the prompt and ensure that the revised sentences no longer have harmful or offensive language but retain the original meaning or intention in a more respectful and appropriate way.
         for i in range(len(matching_indices)):
             prompt_granite = """Rewrite the following sentence to remove any harmful, abusive, or inappropriate content while maintaining the original meaning where possible. Ensure the revised sentence is respectful, neutral, and appropriate for all audiences. The output should contain only the revised sentence itself, without any additional words, explanations, or punctuation marks.
 
@@ -212,7 +199,6 @@ Output: """
                 "model_id": "ibm/granite-13b-instruct-v2",
                 "project_id": project_id
             }
-            #print(body_granite)
 
             # Make the API call to the LLM model
             authorization = "Bearer " + bearer_token
@@ -243,6 +229,5 @@ Output: """
             # Change the original sentence with the revised sentence
             full_strings[matching_indices[i]] = result_granite
             
-        #matrix_of_docs_rewritten[key] = rebuild_text_with_newlines(full_strings)
         docs[key].page_content = rebuild_text_with_newlines(full_strings)
         docs[key].metadata['rewritten'] = True
