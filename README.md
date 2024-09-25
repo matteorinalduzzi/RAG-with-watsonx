@@ -17,31 +17,29 @@ However, most existing HAP filters focus on removing harmful content entirely, w
 
 In this article, we will show how to easily implement a pipeline that identifies HAP language within documents intended for ingestion (pre-processing approach) and, rather than discarding these sections, pass the flagged content to an LLM, which will rephrase the HAP elements into a more appropriate form while preserving the original meaning and context. The cleaned documents can then be ingested into the RAG system, ensuring both the integrity of the knowledge base and the ethical use of language. This approach not only safeguards the user experience but also maximizes the amount of usable, meaningful content available to the system. Furthermore, in order to assure that users' queries will not force the LLM to produce HAP content, we will introduce a post-processing filter aimed to detect HAP language in the generated content and rephrase it if needed.
 
-In doing so, we expand our preavious work on how to build a RAG system (reference) leveraging IBM Granite Guardium, a highly effective classifier for identifying hate, abuse, and profanity (HAP) content recently open-sourced by IBM Research (reference), for classifing HAP content within the knowledge base. Trained on large-scale datasets, IBM Granite Guardium boasts a lightweight model with only 38 million parameters, allowing it to deliver accurate HAP detection for the english language with lower computational requirements. Its streamlined performance ensures quick and reliable identification of harmful content, making it an ideal tool for real-time applications in content moderation, while maintaining the scalability needed for large RAG systems. Finally, we will show how to easily identify HAP content in the output of models hosted in IBM watsonx's foundational model library by leveraging the "AI Guardrails" feature embedded in IBM watsonx.
+In doing so, we expand our preavious work on how to build a RAG system (reference) leveraging IBM Granite Guardium, a highly effective classifier for identifying hate, abuse, and profanity (HAP) content recently open-sourced by IBM Research (reference), for classifing HAP content within the knowledge base. Trained on large-scale datasets, IBM Granite Guardium boasts a lightweight model with only 38 million parameters, allowing it to deliver accurate HAP detection for the english language with lower computational requirements. Its streamlined performance ensures quick and reliable identification of harmful content, making it an ideal tool for real-time applications in content moderation, while maintaining the scalability needed for large RAG systems. 
 
-# Identify HAP content in the knowledge base using IBM Granite Guardium
+# Identify HAP content in the knowledge base using IBM Granite Guardium and transform it using IBM Granite-13B-instruct in watsonx.ai
 
-Differently from our preavious work, we introduce a new pre-processing step aimed at identifying documents containing HAP content. In order to do so, we split our documents into chuncks of text that we will pass to our HAP classifier. 
+In order to introduce the pre-processing needed for the implementation of the HAP filter, as well as the IBM Granite Guardium model itself, with minimal modifications to our previous notebook, we define some helper functions provided in the hap_utilities.py file.
 
-(fig1)
+In particular we define some basic pre-processing functions in order to handle our chuncks of text while passing it to a filter, transform it when appropriate and re-build the documents with the transformed chunks of text (i.e. split_text_preserve_newlines, rebuild_text_with_newlines and find_substring_indices). Last but not least, we introduce a new function (i.e. clean_hap_content) that performs a series of steps in order to clean out the HAP content from our documents.
 
-Then we need load the IBM Granite Guardian 38M model, which can be easily pulled from its HuggingFace Repository. The model take string of text as input and compute the probability that the processed text may contain HAP language: in its basic settings, if the probability associated to a string is higher than 0.5, the string is classified as 1 (indicating that it may contain HAP language), otherwise it is classified as 0 (i.e. no HAP content detected). For the sake of our analysis, we decide to select only the chuncks of text presenting a probability higher than 0.9 but the code can be easily adapted in order to select the preferred treshold for the specific use case.
+First, the function processes the documents in order to create chuncks that can be evaluated by the HAP classifier:
 
-(fig2)
+![Fig.1 - Split documents in chunks](./images/fig1.png)
 
-Once we have identified the chunck on documents containing HAP language, we can build a dictionary containing all the documents containing such chuncks for later processing.
+Then the function loads the IBM Granite Guardian 38M model, which can be easily pulled from its HuggingFace Repository (link). The model take strings of text as input and compute the probability that the processed text may contain HAP language: in its basic settings, if the probability associated to a string is higher than 0.5, the string is classified as 1 (indicating that it may contain HAP language), otherwise it is classified as 0 (i.e. no HAP content detected). For the sake of our analysis, we decide to select only the chuncks of text presenting a probability higher than 0.9 but the code can be easily adapted in order to select the preferred treshold for the specific use case:
 
-(fig3)
+![Fig.2 - Classify HAP content with IBM Granite Guardium](./images/fig2.png)
 
-Now we need to build-up a few functions for manipulating the documents containing the chuncks we want to transform, in particular we will need to identify these chuncks, extract it from the documents and rebuild the documents once the selected chuncks are processed and trasformed in order to remove the HAP content.
+Once we have identified the chuncks on text containing HAP language, we can finally pass these chuncks to the IBM Granite 13 Billions Instruct foundational model in watsonx.ai, which will transform such chuncks rephrasing the harmful content using the following prompt:
 
-(fig4)
+![Fig.3 - Transform the harmful content while maintaining information](./images/fig3.png)
 
-# Rephrasing HAP content within documents while maintaining information
+Once we have defined the helper functions, the original notebook is only updated with one line of code in order to pre-process the documents before being inserted into ChromaDB and while the rest of the code will perform the same operations as in the original work.
 
-We are now ready to process the HAP content in order to transform it so to maintain as much information as possible while rephrasing the text in proper language. In doing so, we leverage the foundational models available in IBM watsonx.ai: this will help us in selecting the model the best fit our requisites, since we can easily analize the model cards containing relevant information on model training, performance and cost. In particular, since we are willing to ensure that our RAG workflow avoid to produce any HAP content, we select IBM Granite 13B Instruct due to the data filtering process adopted at training time (which ensure limited possible exposure to HAP content during model training) and its balanced performace/cost ratio.
+# Conclusions
 
+In this brief article we outlined how to easily implement a filter able to detect and trasform potentially harmful language in our RAG knowledge base leveraging the open-source IBM Granite Guardium model. As demostrated by the execution of this simple code, such model can be easily deployed on consumer grade hardware reducing the costs potentially associated with the use of larger, generalistic LLMs, allowing for a more efficient use of resources and freeing up space for the use of larger model to address different tasks (such as the re-phrasing of the identified harmful content). Furthermore, the implementation of the re-phrainsing mechanism for the identified HAP content overcomes the issues potentially raised by a complete removal of the information carried by the harmful content.
 
-
-
-# HAP filtering LLMs'output using IBM watsonx's AI Guardrails feature
